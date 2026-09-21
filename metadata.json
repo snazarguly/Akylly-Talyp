@@ -1,0 +1,8 @@
+{
+  "name": "Remix Akylly Talyp",
+  "description": "Ýagşygeldi Kakaýew adyndaky Halkara nebit we gaz uniwersitetiniň (HNGU) talyplary üçin döwrebap sanly kömekçi goşundysy",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
