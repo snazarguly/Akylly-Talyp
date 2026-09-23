@@ -1,5 +1,6 @@
 package com.example.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -36,15 +37,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.core.data.DemoDataRepository
 import com.example.core.localization.AppStrings
@@ -77,6 +76,7 @@ enum class AppDestination {
 @Composable
 fun MainAppNav(
     repository: DemoDataRepository,
+    offlineAiService: OfflineAiService,
     modifier: Modifier = Modifier
 ) {
     val isLoggedIn by repository.isLoggedIn.collectAsState()
@@ -84,6 +84,8 @@ fun MainAppNav(
     val currentLang by repository.appLanguage.collectAsState()
     val currentThemeMode by repository.themeMode.collectAsState()
     val isOffline by repository.isOffline.collectAsState()
+    val savedLogin by repository.savedLogin.collectAsState()
+    val rememberPassword by repository.rememberPassword.collectAsState()
 
     val student by repository.studentProfile.collectAsState()
     val scheduleList by repository.scheduleList.collectAsState()
@@ -99,7 +101,8 @@ fun MainAppNav(
     val strings = AppStrings.forLanguage(currentLang)
     val unreadNotificationsCount = notifications.count { !it.isRead }
 
-    var currentDestination by remember {
+    // rememberSaveable keeps the current screen across rotation and process recreation.
+    var currentDestination by rememberSaveable {
         mutableStateOf(
             if (!isLoggedIn) AppDestination.LOGIN
             else if (!isOnboardingCompleted) AppDestination.ONBOARDING
@@ -107,17 +110,15 @@ fun MainAppNav(
         )
     }
 
-    var isSplashFinished by remember { mutableStateOf(false) }
+    var isSplashFinished by rememberSaveable { mutableStateOf(false) }
 
     // Bottom Navigation tab: 0=Home, 1=Study, 2=Announcements, 3=AI, 4=Profile
-    var selectedBottomTab by remember { mutableIntStateOf(0) }
-    var studyHubSubTab by remember { mutableIntStateOf(0) }
+    var selectedBottomTab by rememberSaveable { mutableIntStateOf(0) }
+    var studyHubSubTab by rememberSaveable { mutableIntStateOf(0) }
 
     // Overlays
-    var isSearchOpen by remember { mutableStateOf(false) }
-    var isNotificationSheetOpen by remember { mutableStateOf(false) }
-    val appContext = LocalContext.current.applicationContext
-    val offlineAiService = remember(appContext) { OfflineAiService(appContext) }
+    var isSearchOpen by rememberSaveable { mutableStateOf(false) }
+    var isNotificationSheetOpen by rememberSaveable { mutableStateOf(false) }
 
     if (!isSplashFinished) {
         SplashScreen(
@@ -137,13 +138,16 @@ fun MainAppNav(
                 strings = strings,
                 currentLanguage = currentLang,
                 onLanguageChange = { repository.setLanguage(it) },
-                onLoginSuccess = {
-                    repository.login("Suleyman_05", "03122005.sns")
-                    currentDestination = if (!isOnboardingCompleted) AppDestination.ONBOARDING else AppDestination.MAIN
-                },
-                onQuickDemoLogin = {
-                    repository.login("Suleyman_05", "03122005.sns")
-                    currentDestination = if (!isOnboardingCompleted) AppDestination.ONBOARDING else AppDestination.MAIN
+                savedLogin = savedLogin,
+                rememberPassword = rememberPassword,
+                onRememberPasswordChange = { repository.setRememberPassword(it) },
+                onLogin = { login, password ->
+                    val success = repository.login(login, password)
+                    if (success) {
+                        selectedBottomTab = 0
+                        currentDestination = if (!isOnboardingCompleted) AppDestination.ONBOARDING else AppDestination.MAIN
+                    }
+                    success
                 }
             )
         }
@@ -159,13 +163,11 @@ fun MainAppNav(
         }
 
         AppDestination.MAIN -> {
-            val navBarInsets = WindowInsets.navigationBars.asPaddingValues()
-            val bottomSafePadding = navBarInsets.calculateBottomPadding()
-            val totalBottomBarOffset = bottomSafePadding + AppComponentSize.bottomNavHeight + AppComponentSize.bottomNavBottomSpacing
-
             val imeBottomPadding = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
             val isKeyboardOpen = imeBottomPadding > 0.dp
-            var isAiTyping by remember { mutableStateOf(false) }
+
+            // System back returns to the Home tab first instead of closing the app from any tab.
+            BackHandler(enabled = selectedBottomTab != 0) { selectedBottomTab = 0 }
 
             val navItems = listOf(
                 GlassNavTabItem(strings.navHome, Icons.Filled.Home, Icons.Outlined.Home, "nav_tab_home"),
@@ -233,7 +235,8 @@ fun MainAppNav(
                                 examsList = examsList,
                                 student = student,
                                 unreadCount = unreadNotificationsCount,
-                                initialSubTab = studyHubSubTab,
+                                selectedSubTab = studyHubSubTab,
+                                onSubTabChange = { studyHubSubTab = it },
                                 onSearchClick = { isSearchOpen = true },
                                 onNotificationClick = { isNotificationSheetOpen = true }
                             )
@@ -251,7 +254,6 @@ fun MainAppNav(
                                 currentLanguage = currentLang,
                                 repository = repository,
                                 offlineService = offlineAiService,
-                                onInputActiveChanged = { isAiTyping = it },
                                 modifier = Modifier.fillMaxSize()
                             )
 
@@ -283,8 +285,7 @@ fun MainAppNav(
                 }
 
                 // Floating iOS Glassmorphism Bottom Navigation Bar (automatically hides when keyboard is open)
-                val hideBottomNav = isKeyboardOpen
-                if (!hideBottomNav) {
+                if (!isKeyboardOpen) {
                     GlassBottomNavigation(
                         tabs = navItems,
                         selectedTabIndex = selectedBottomTab,

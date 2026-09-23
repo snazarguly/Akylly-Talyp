@@ -127,13 +127,11 @@ fun DedicatedAiScreen(
     currentLanguage: AppLanguage,
     repository: DemoDataRepository,
     offlineService: OfflineAiService,
-    modifier: Modifier = Modifier,
-    onInputActiveChanged: (Boolean) -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
     // 0 = Offline AI, 1 = Online AI
     var selectedAiMode by rememberSaveable { mutableIntStateOf(0) }
     var inputText by remember { mutableStateOf("") }
-    var isInputFocused by remember { mutableStateOf(false) }
     val offlineListState = rememberLazyListState()
     val onlineListState = rememberLazyListState()
     val listState = if (selectedAiMode == 0) offlineListState else onlineListState
@@ -200,10 +198,6 @@ fun DedicatedAiScreen(
             val targetIndex = totalMessageCount + if (isThinking) 1 else 0
             listState.animateScrollToItem(targetIndex)
         }
-    }
-
-    LaunchedEffect(isKeyboardOpen) {
-        onInputActiveChanged(isKeyboardOpen)
     }
 
     val navBarBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -366,7 +360,7 @@ fun DedicatedAiScreen(
                         )
                         Spacer(modifier = Modifier.width(AppSpacing.xxs))
                         Text(
-                            text = if (isGeminiConfigured) "Online režim • Gemini API işjeň" else "Online režim • Intellektual Campus kömekçisi",
+                            text = if (isGeminiConfigured) "Online režim • Gemini API işjeň" else "Online režim • Gemini API açary gerek",
                             style = AppTypography.Caption.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f)
@@ -593,7 +587,6 @@ fun DedicatedAiScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .onFocusChanged { isInputFocused = it.isFocused }
                         .testTag("ai_input_field"),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(

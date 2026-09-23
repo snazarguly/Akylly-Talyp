@@ -3,7 +3,6 @@ package com.example.ui.theme
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
-import androidx.core.view.WindowCompat
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -68,39 +67,15 @@ fun MyApplicationTheme(
 
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
+    // Keep status/navigation bar icons readable when the in-app theme differs from the system one.
     val context = LocalContext.current
     DisposableEffect(darkTheme) {
-        val activity = context as? ComponentActivity
-        if (activity != null) {
-            val window = activity.window
-            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
-            insetsController.isAppearanceLightStatusBars = !darkTheme
-            insetsController.isAppearanceLightNavigationBars = !darkTheme
-
-            activity.enableEdgeToEdge(
-                statusBarStyle = if (darkTheme) {
-                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                } else {
-                    SystemBarStyle.light(
-                        android.graphics.Color.TRANSPARENT,
-                        android.graphics.Color.TRANSPARENT
-                    )
-                },
-                navigationBarStyle = if (darkTheme) {
-                    SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
-                } else {
-                    SystemBarStyle.light(
-                        android.graphics.Color.TRANSPARENT,
-                        android.graphics.Color.TRANSPARENT
-                    )
-                }
-            )
-
-            try {
-                window.navigationBarColor = android.graphics.Color.TRANSPARENT
-                window.statusBarColor = android.graphics.Color.TRANSPARENT
-            } catch (_: Exception) {}
+        val barStyle = if (darkTheme) {
+            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+        } else {
+            SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
         }
+        (context as? ComponentActivity)?.enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
         onDispose { }
     }
 

@@ -52,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +70,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
+import com.example.core.data.DemoDataRepository
 import com.example.core.localization.AppLanguage
 import com.example.core.localization.AppStrings
 import com.example.ui.components.GlassCard
@@ -165,15 +167,20 @@ fun LoginScreen(
     strings: AppStrings,
     currentLanguage: AppLanguage,
     onLanguageChange: (AppLanguage) -> Unit,
-    onLoginSuccess: () -> Unit,
-    onQuickDemoLogin: () -> Unit,
+    savedLogin: String,
+    rememberPassword: Boolean,
+    onRememberPasswordChange: (Boolean) -> Unit,
+    onLogin: (login: String, password: String) -> Boolean,
     modifier: Modifier = Modifier
 ) {
-    var loginInput by remember { mutableStateOf("Suleyman_05") }
-    var passwordInput by remember { mutableStateOf("03122005.sns") }
-    var rememberPassword by remember { mutableStateOf(true) }
+    var loginInput by rememberSaveable { mutableStateOf(savedLogin) }
+    var passwordInput by rememberSaveable { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var hasError by remember { mutableStateOf(false) }
+
+    fun submit(login: String, password: String) {
+        hasError = !onLogin(login, password)
+    }
 
     val scrollState = rememberScrollState()
 
@@ -321,6 +328,7 @@ fun LoginScreen(
                             keyboardType = KeyboardType.Password,
                             imeAction = ImeAction.Done
                         ),
+                        keyboardActions = KeyboardActions(onDone = { submit(loginInput, passwordInput) }),
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
@@ -347,7 +355,7 @@ fun LoginScreen(
                     ) {
                         Checkbox(
                             checked = rememberPassword,
-                            onCheckedChange = { rememberPassword = it },
+                            onCheckedChange = onRememberPasswordChange,
                             colors = CheckboxDefaults.colors(checkedColor = AcademicTeal),
                             modifier = Modifier.testTag("remember_password_checkbox")
                         )
@@ -355,7 +363,7 @@ fun LoginScreen(
                             text = strings.rememberPassword,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.clickable { rememberPassword = !rememberPassword }
+                            modifier = Modifier.clickable { onRememberPasswordChange(!rememberPassword) }
                         )
                     }
 
@@ -381,13 +389,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
-                        onClick = {
-                            if (loginInput == "Suleyman_05" && passwordInput == "03122005.sns") {
-                                onLoginSuccess()
-                            } else {
-                                hasError = true
-                            }
-                        },
+                        onClick = { submit(loginInput, passwordInput) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
@@ -406,9 +408,9 @@ fun LoginScreen(
 
                     OutlinedButton(
                         onClick = {
-                            loginInput = "Suleyman_05"
-                            passwordInput = "03122005.sns"
-                            onQuickDemoLogin()
+                            loginInput = DemoDataRepository.DEMO_LOGIN
+                            passwordInput = DemoDataRepository.DEMO_PASSWORD
+                            submit(loginInput, passwordInput)
                         },
                         modifier = Modifier
                             .fillMaxWidth()

@@ -10,8 +10,9 @@ import com.example.features.offline_ai.rag.EmbeddingEngine
 import com.example.features.offline_ai.rag.SimpleEmbeddingEngine
 import com.example.features.offline_ai.rag.VectorStore
 import com.example.features.offline_ai.rag.SimpleVectorStore
+import com.example.features.offline_ai.engine.OfflineAnswerEngine
 import com.example.features.offline_ai.response.ResponseGuard
-import com.example.features.offline_ai.security.StudentPrivacyGuard
+import com.example.features.offline_ai.security.OfflineSecurityGate
 import com.example.features.offline_ai.student.StudentDataProvider
 import com.example.features.offline_ai.data.OfflineStudentDatabase
 import com.example.features.offline_ai.knowledge.GeneralHnguKnowledge
@@ -32,8 +33,11 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Orchestrates the 100% Local LLM + RAG Pipeline.
- * Loads the model directly from APK assets for maximum efficiency.
+ * Orchestrates the on-device assistant.
+ *
+ * Every query first passes [OfflineSecurityGate]. When a local LLM is loaded, answers come from the
+ * LLM + RAG pipeline; otherwise (the current default — no model or native backend is bundled) they come
+ * from the deterministic [OfflineAnswerEngine], which answers from the student's own record.
  */
 class OfflineAiService(
     private val context: Context? = null
@@ -61,41 +65,36 @@ class OfflineAiService(
 
     private var activeJob: Job? = null
 
+    @Volatile
+    private var isLlmReady = false
+
     init {
-        initializePipeline()
+        // Show the welcome message immediately; loading the model must not reset the chat later.
+        switchUser(_currentUserId.value)
+        initializeLlm()
     }
 
-    private fun initializePipeline() {
+    private fun initializeLlm() {
+        val ctx = context ?: return
         serviceScope.launch {
-            // 1. Vector Store Init
-            initializeKnowledgeBase()
-
-            // 2. Direct Asset Initialization (Zero-Copy)
-            context?.let { ctx ->
-                _inferenceState.value = ModelInferenceState.LOADING_WEIGHTS
-                inferenceEngine.initializeFromAssets(
-                    context = ctx,
-                    assetPath = "models/Qwen3-4B-Instruct-Q4_K_M.gguf",
-                    config = InferenceConfig()
-                )
-            }
-
-            _inferenceState.value = ModelInferenceState.READY
-            switchUser(_currentUserId.value)
+            isLlmReady = inferenceEngine.initializeFromAssets(
+                context = ctx,
+                assetPath = "models/Qwen3-4B-Instruct-Q4_K_M.gguf",
+                config = InferenceConfig()
+            ).isSuccess
+            if (isLlmReady) initializeKnowledgeBase()
         }
     }
 
-    private fun initializeKnowledgeBase() {
-        serviceScope.launch {
-            vectorStore.clear()
-            GeneralHnguKnowledge.TOPICS.forEach { topic ->
-                val chunk = VectorStore.Chunk(
-                    id = topic.id,
-                    text = "${topic.title}: ${topic.contentTk}",
-                    embedding = embeddingEngine.getEmbedding(topic.contentTk)
-                )
-                vectorStore.addChunk(chunk)
-            }
+    private suspend fun initializeKnowledgeBase() {
+        vectorStore.clear()
+        GeneralHnguKnowledge.TOPICS.forEach { topic ->
+            val chunk = VectorStore.Chunk(
+                id = topic.id,
+                text = "${topic.title}: ${topic.contentTk}",
+                embedding = embeddingEngine.getEmbedding(topic.contentTk)
+            )
+            vectorStore.addChunk(chunk)
         }
     }
 
@@ -107,7 +106,7 @@ class OfflineAiService(
             val studentData = studentDb.getStudentData(newUserId)
             val welcome = OfflineChatMessage(
                 id = "welcome_${System.currentTimeMillis()}",
-                text = "Salam, ${studentData?.fullName ?: "Talyp"}! Men Akylly Talyp Offline AI. 100% lokal model arkaly işleýärin.",
+                text = "Salam, ${studentData?.fullName ?: "Talyp"}! Men Akylly Talyp Offline AI. Internet bolmasa-da bahalaryňyz, sapak tertibiňiz, ekzamenleriňiz we HNGU barada soraglaryňyza jogap berýärin.",
                 isUser = false,
                 timestamp = getCurrentTime()
             )
@@ -128,9 +127,15 @@ class OfflineAiService(
         activeJob = serviceScope.launch {
             _inferenceState.value = ModelInferenceState.RETRIEVING_CONTEXT
 
-            val guardResult = StudentPrivacyGuard.validateQuery(userText, uid)
-            if (guardResult is StudentPrivacyGuard.GuardResult.Blocked) {
-                postAiMessage(uid, guardResult.localizedMessage, "Security Guard")
+            val guardResult = OfflineSecurityGate.checkQuery(userText, uid, studentData, languageCode)
+            if (guardResult is OfflineSecurityGate.SecurityCheckResult.Blocked) {
+                postAiMessage(uid, guardResult.message, "Security Guard")
+                return@launch
+            }
+
+            if (!isLlmReady) {
+                val answer = OfflineAnswerEngine.answer(userText, studentData, languageCode)
+                postAiMessage(uid, answer, "Offline knowledge engine")
                 return@launch
             }
 

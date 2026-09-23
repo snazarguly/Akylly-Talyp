@@ -1,16 +1,20 @@
 package com.example.core.ai
 
+import com.example.core.model.ChatMessage
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
-import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
 @JsonClass(generateAdapter = true)
@@ -52,7 +56,7 @@ interface GeminiRestService {
     @POST("v1beta/models/{model}:generateContent")
     suspend fun generateContent(
         @Path("model") model: String,
-        @Query("key") apiKey: String,
+        @Header("x-goog-api-key") apiKey: String,
         @Body request: GeminiGenerateContentRequest
     ): GeminiGenerateContentResponse
 }
@@ -66,9 +70,8 @@ object GeminiClient {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    private val moshi: Moshi = Moshi.Builder()
-        .addLast(KotlinJsonAdapterFactory())
-        .build()
+    // Adapters are generated at compile time (moshi-kotlin-codegen), so no reflection is needed.
+    private val moshi: Moshi = Moshi.Builder().build()
 
     val service: GeminiRestService by lazy {
         Retrofit.Builder()
@@ -96,60 +99,26 @@ class GeminiService(
      */
     suspend fun generateResponse(
         userPrompt: String,
-        conversationHistory: List<com.example.core.model.ChatMessage> = emptyList(),
-        systemPrompt: String? = null,
-        apiKey: String? = null
+        apiKey: String,
+        conversationHistory: List<ChatMessage> = emptyList(),
+        systemPrompt: String? = null
     ): String {
-        val effectiveApiKey = apiKey?.takeIf { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }
-            ?: com.example.BuildConfig.GEMINI_API_KEY.takeIf { it.isNotBlank() && it != "MY_GEMINI_API_KEY" }
+        require(apiKey.isNotBlank()) { "API key is missing or not configured." }
 
-        if (effectiveApiKey.isNullOrBlank()) {
-            throw IllegalStateException("API key is missing or not configured. Please set GEMINI_API_KEY in Secrets or app settings.")
-        }
-
-        // Build valid contents array:
-        // Gemini API requires that:
-        // 1. Roles are 'user' and 'model'
-        // 2. The first content element has role 'user'
-        val contents = mutableListOf<GeminiContent>()
-
-        // Find recent history (up to last 6 messages)
-        val recentHistory = conversationHistory.takeLast(6)
-        val firstUserIdx = recentHistory.indexOfFirst { it.isUser }
-        if (firstUserIdx != -1) {
-            val candidateHistory = recentHistory.subList(firstUserIdx, recentHistory.size)
-            for (msg in candidateHistory) {
-                // If message matches userPrompt at the tail, skip to avoid duplicate
-                if (msg.text.trim() == userPrompt.trim() && msg == candidateHistory.last()) continue
-                contents.add(
-                    GeminiContent(
-                        role = if (msg.isUser) "user" else "model",
-                        parts = listOf(GeminiPart(text = msg.text))
-                    )
-                )
-            }
-        }
-
-        // Ensure user's current question is appended as the active 'user' turn
-        contents.add(
-            GeminiContent(
-                role = "user",
-                parts = listOf(GeminiPart(text = userPrompt))
-            )
-        )
-
-        android.util.Log.d("GeminiService", "Dispatching generateContent for user prompt: '$userPrompt'")
+        // Gemini expects roles 'user'/'model' and the first turn to be from the user.
+        // The history already ends with the current prompt, so drop it and append it explicitly.
+        val history = conversationHistory
+            .dropLastWhile { it.isUser && it.text.trim() == userPrompt.trim() }
+            .takeLast(6)
+            .dropWhile { !it.isUser }
+        val contents = history.map {
+            GeminiContent(role = if (it.isUser) "user" else "model", parts = listOf(GeminiPart(text = it.text)))
+        } + GeminiContent(role = "user", parts = listOf(GeminiPart(text = userPrompt)))
 
         val request = GeminiGenerateContentRequest(
-            systemInstruction = systemPrompt?.let {
-                GeminiContent(parts = listOf(GeminiPart(text = it)))
-            },
+            systemInstruction = systemPrompt?.let { GeminiContent(parts = listOf(GeminiPart(text = it))) },
             contents = contents,
-            generationConfig = GeminiGenerationConfig(
-                temperature = 0.7f,
-                topP = 0.95f,
-                topK = 40
-            )
+            generationConfig = GeminiGenerationConfig()
         )
 
         // Try primary model first, fallback to alternate if needed
@@ -158,17 +127,23 @@ class GeminiService(
 
         for (model in modelsToTry) {
             try {
-                val response = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    restService.generateContent(model, effectiveApiKey, request)
+                val response = withContext(Dispatchers.IO) {
+                    restService.generateContent(model, apiKey, request)
                 }
-
-                val text = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                val text = response.candidates?.firstOrNull()?.content?.parts
+                    ?.mapNotNull { it.text }
+                    ?.joinToString("")
                 if (!text.isNullOrBlank()) {
                     return text.trim()
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: HttpException) {
+                // A bad or unauthorized key fails the same way on every model.
+                if (e.code() == 400 || e.code() == 401 || e.code() == 403) throw e
+                lastException = e
             } catch (e: Exception) {
                 lastException = e
-                android.util.Log.w("GeminiService", "Model $model request failed: ${e.message}")
             }
         }
 

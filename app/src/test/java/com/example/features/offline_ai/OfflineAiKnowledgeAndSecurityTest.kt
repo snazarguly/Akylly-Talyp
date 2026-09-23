@@ -2,12 +2,10 @@ package com.example.features.offline_ai
 
 import com.example.features.offline_ai.data.OfflineKnowledgeRepository
 import com.example.features.offline_ai.data.OfflineStudentDatabase
+import com.example.features.offline_ai.engine.OfflineAnswerEngine
 import com.example.features.offline_ai.knowledge.GeneralHnguKnowledge
-import com.example.features.offline_ai.llm.LocalGenerativeLlmEngine
-import com.example.features.offline_ai.retrieval.LocalRetrievalEngine
 import com.example.features.offline_ai.security.OfflineSecurityGate
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,15 +28,11 @@ class OfflineAiKnowledgeAndSecurityTest {
 
     private lateinit var database: OfflineStudentDatabase
     private lateinit var repository: OfflineKnowledgeRepository
-    private lateinit var retrievalEngine: LocalRetrievalEngine
-    private lateinit var llmEngine: LocalGenerativeLlmEngine
 
     @Before
     fun setup() {
         database = OfflineStudentDatabase()
         repository = OfflineKnowledgeRepository(database = null) // Uses in-memory isolated stores
-        retrievalEngine = LocalRetrievalEngine()
-        llmEngine = LocalGenerativeLlmEngine()
     }
 
     // =============================================================================================
@@ -136,9 +130,10 @@ class OfflineAiKnowledgeAndSecurityTest {
         val queriesAndKeywords = mapOf(
             "Gatnaşyk düzgüni nähili?" to "80%",
             "GPA bahalandyryş ulgamy nähili işleýär?" to "A (4.0)",
-            "Kitaphana haçana çenli işleýär?" to "20:00",
+            // The knowledge base has no library hours or faculty list, so only check the right topic is found.
+            "Kitaphana haçana çenli işleýär?" to "Kitaphana",
             "CyberGuard bäsleşigi barada aýt" to "CyberGuard",
-            "HNGU-da haýsy fakultetler bar?" to "Kompýuter tehnologiýalary"
+            "HNGU-da haýsy fakultetler bar?" to "Halkara nebit we gaz uniwersiteti"
         )
 
         for ((query, expectedKeyword) in queriesAndKeywords) {
@@ -224,26 +219,12 @@ class OfflineAiKnowledgeAndSecurityTest {
         // Query completely outside local data & general university knowledge
         val unknownQuery = "Uniwersitetiň daşynda tölegli awtoduralga barmy?"
 
-        val retrieval = retrievalEngine.retrieveRelevantContext(
-            query = unknownQuery,
-            studentData = suleyman,
-            targetLanguage = "tk",
-            personalKnowledgeList = emptyList(),
-            generalKnowledgeMatch = null
-        )
-
-        val response = llmEngine.generateResponseStream(
-            systemPrompt = "Offline AI",
-            userQuery = unknownQuery,
-            retrievedContext = retrieval.contextSummary,
-            conversationHistory = "",
-            language = "tk"
-        ).last()
+        val response = OfflineAnswerEngine.answer(unknownQuery, suleyman, "tk")
 
         // 1. Must use the predefined fallback response (no hallucination)
         assertTrue(
             "Response must be an unknown fallback response",
-            LocalGenerativeLlmEngine.isUnknownFallbackResponse(response)
+            OfflineAnswerEngine.isUnknownFallback(response)
         )
         assertTrue(
             "Response must mention offline unavailability",

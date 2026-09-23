@@ -1,15 +1,13 @@
 package com.example.features.offline_ai
 
 import com.example.features.offline_ai.data.OfflineStudentDatabase
-import com.example.features.offline_ai.llm.LocalGenerativeLlmEngine
-import com.example.features.offline_ai.retrieval.LocalRetrievalEngine
-import kotlinx.coroutines.flow.last
-import kotlinx.coroutines.runBlocking
+import com.example.features.offline_ai.engine.OfflineAnswerEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.Calendar
 import kotlin.math.abs
 
 /**
@@ -20,15 +18,14 @@ import kotlin.math.abs
 class OfflineAiAcademicHistoryTest {
 
     private lateinit var database: OfflineStudentDatabase
-    private lateinit var retrievalEngine: LocalRetrievalEngine
-    private lateinit var llmEngine: LocalGenerativeLlmEngine
 
     @Before
     fun setup() {
         database = OfflineStudentDatabase()
-        retrievalEngine = LocalRetrievalEngine()
-        llmEngine = LocalGenerativeLlmEngine()
     }
+
+    private fun ask(query: String, language: String): String =
+        OfflineAnswerEngine.answer(query, database.getStudentData("Suleyman_05")!!, language)
 
     @Test
     fun testMathematicalConsistencyOfSemestersAndGpa() {
@@ -92,37 +89,19 @@ class OfflineAiAcademicHistoryTest {
     }
 
     @Test
-    fun testUserAskingGradesNeverReturnsOnlyOverallScore() = runBlocking {
-        val student = database.getStudentData("Suleyman_05")!!
-        val retrieval = retrievalEngine.retrieveRelevantContext("Bahalarymy görkez", student, "tk")
-
-        val response = llmEngine.generateResponseStream(
-            systemPrompt = "",
-            userQuery = "Bahalarymy görkez",
-            retrievedContext = retrieval.contextSummary,
-            conversationHistory = "",
-            language = "tk"
-        ).last()
+    fun testUserAskingGradesNeverReturnsOnlyOverallScore() {
+        val response = ask("Bahalarymy görkez", "tk")
 
         // MUST list individual subject rows, not merely "GPA: 93.8%"
         assertTrue("Response must contain individual subject breakdown", response.contains("Penetration Testing") || response.contains("Kiberhowpsuzlyk") || response.contains("Zeper ýetiriji") || response.contains("Kriptografiýa"))
         assertTrue("Response must contain letter grades (e.g. A, B+, A-)", response.contains("A+") || response.contains("A-") || response.contains("B+"))
         assertTrue("Response must contain semester GPA and credits", response.contains("Semestr GPA"))
-        assertTrue("Response must include DEMO DATA watermark", response.contains("DEMO DATA — NOT REAL UNIVERSITY DATA"))
+        assertTrue("Response must include DEMO DATA watermark", response.contains(OfflineAnswerEngine.DEMO_WATERMARK))
     }
 
     @Test
-    fun testSemesterSpecificSubjectQueries() = runBlocking {
-        val student = database.getStudentData("Suleyman_05")!!
-        val retrieval = retrievalEngine.retrieveRelevantContext("1-nji semestrde haýsy derslerden näçe aldym?", student, "tk")
-
-        val response = llmEngine.generateResponseStream(
-            systemPrompt = "",
-            userQuery = "1-nji semestrde haýsy derslerden näçe aldym?",
-            retrievedContext = retrieval.contextSummary,
-            conversationHistory = "",
-            language = "tk"
-        ).last()
+    fun testSemesterSpecificSubjectQueries() {
+        val response = ask("1-nji semestrde haýsy derslerden näçe aldym?", "tk")
 
         // Semester 1 subjects must be presented
         assertTrue("Response must mention Semester 1 subjects", response.contains("Ýokary matematika I") && response.contains("Umumy fizika I"))
@@ -130,17 +109,8 @@ class OfflineAiAcademicHistoryTest {
     }
 
     @Test
-    fun testCrossSemesterSubjectTracking() = runBlocking {
-        val student = database.getStudentData("Suleyman_05")!!
-        val retrieval = retrievalEngine.retrieveRelevantContext("What did I get in Mathematics?", student, "en")
-
-        val response = llmEngine.generateResponseStream(
-            systemPrompt = "",
-            userQuery = "What did I get in Mathematics?",
-            retrievedContext = retrieval.contextSummary,
-            conversationHistory = "",
-            language = "en"
-        ).last()
+    fun testCrossSemesterSubjectTracking() {
+        val response = ask("What did I get in Mathematics?", "en")
 
         // Mathematics was taken in Semester 1 (Ýokary matematika I) and Semester 2 (Ýokary matematika II)
         assertTrue("Response must locate multiple mathematics records across semesters", response.contains("Semester 1") && response.contains("Semester 2"))
@@ -148,35 +118,43 @@ class OfflineAiAcademicHistoryTest {
     }
 
     @Test
-    fun testSingleSubjectDetailWithComponents() = runBlocking {
-        val student = database.getStudentData("Suleyman_05")!!
-        val retrieval = retrievalEngine.retrieveRelevantContext("4-nji semestrde matematika näçe aldym?", student, "tk")
-
-        val response = llmEngine.generateResponseStream(
-            systemPrompt = "",
-            userQuery = "1-nji semestrde matematika näçe aldym?",
-            retrievedContext = retrieval.contextSummary,
-            conversationHistory = "",
-            language = "tk"
-        ).last()
+    fun testSingleSubjectDetailWithComponents() {
+        val response = ask("1-nji semestrde matematika näçe aldym?", "tk")
 
         assertTrue("Response must specify grade components and attendance", response.contains("Aralyk") || response.contains("Ekzamen") || response.contains("Mugallym"))
     }
 
     @Test
-    fun testTeacherHistoryAndSubjectMissedMost() = runBlocking {
-        val student = database.getStudentData("Suleyman_05")!!
-        val retrieval = retrievalEngine.retrieveRelevantContext("Which subject did I miss the most?", student, "en")
-
-        val response = llmEngine.generateResponseStream(
-            systemPrompt = "",
-            userQuery = "Which subject did I miss the most?",
-            retrievedContext = retrieval.contextSummary,
-            conversationHistory = "",
-            language = "en"
-        ).last()
+    fun testTeacherHistoryAndSubjectMissedMost() {
+        val response = ask("Which subject did I miss the most?", "en")
 
         // Most missed subject for Suleyman is PHYS-101 (Umumy fizika I) with 3 absences
         assertTrue("Response must identify subject with highest absences", response.contains("fizika") || response.contains("PHYS-101") || response.contains("Physics") || response.contains("3"))
+    }
+
+    @Test
+    fun testFutureSemesterIsNeverAnswered() {
+        // Suleyman is in semester 6: semester 7 data must not exist or be invented.
+        val response = ask("7-nji semestrde bahalarym näçe?", "tk")
+        assertTrue(response.contains("entek başlamady"))
+    }
+
+    @Test
+    fun testExamCountdownUsesRealDates() {
+        val student = database.getStudentData("Suleyman_05")!!
+        val beforeExams = Calendar.getInstance().apply { set(2026, Calendar.JUNE, 15) }
+        val afterExams = Calendar.getInstance().apply { set(2026, Calendar.SEPTEMBER, 1) }
+
+        val upcoming = OfflineAnswerEngine.answer("Ekzamenlerim haçan?", student, "tk", beforeExams)
+        assertTrue(upcoming.contains("Penetration Testing") && upcoming.contains("5 gün galdy"))
+
+        val later = OfflineAnswerEngine.answer("Ekzamenlerim haçan?", student, "tk", afterExams)
+        assertTrue("Past exams must not be reported as upcoming", later.contains("ýakynlaşýan ekzamen ýok"))
+    }
+
+    @Test
+    fun testGeneralRuleQuestionIsNotTreatedAsPersonalGrades() {
+        val response = ask("GPA bahalandyryş ulgamy nähili işleýär?", "tk")
+        assertTrue(response.contains("A (4.0)"))
     }
 }
