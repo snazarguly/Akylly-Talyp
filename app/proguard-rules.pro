@@ -19,8 +19,3 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
-
-# OkHttp 4.10 optionally uses these TLS providers when present; they are not bundled.
--dontwarn org.bouncycastle.jsse.**
--dontwarn org.conscrypt.**
--dontwarn org.openjsse.**

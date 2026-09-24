@@ -38,10 +38,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -58,9 +58,6 @@ import com.example.core.model.AnnouncementItem
 import com.example.core.model.ExamItem
 import com.example.core.model.ScheduleItem
 import com.example.core.model.StudentProfile
-import com.example.core.util.CampusCalendar
-import java.util.Calendar
-import java.util.Locale
 import com.example.ui.components.AppCard
 import com.example.ui.components.AppPrimaryButton
 import com.example.ui.components.AppSectionHeader
@@ -104,14 +101,25 @@ fun HomeScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     val refreshScope = rememberCoroutineScope()
 
-    // Re-evaluated every few seconds so the "next class" card follows the real clock.
-    val now by rememberClock(periodMillis = 5_000)
-    val today = CampusCalendar.todayDayOfWeek(now)
-    val nextClass = schedule
-        .filter { it.dayOfWeek == today }
-        .mapNotNull { item -> CampusCalendar.minutesOfDay(item.startTime)?.let { item to it * 60 } }
-        .filter { (_, startSecond) -> startSecond > now.secondOfDay() }
-        .minByOrNull { (_, startSecond) -> startSecond }
+    var minutesLeft by remember { mutableIntStateOf(38) }
+    var secondsLeft by remember { mutableIntStateOf(45) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            if (secondsLeft > 0) {
+                secondsLeft--
+            } else {
+                if (minutesLeft > 0) {
+                    minutesLeft--
+                    secondsLeft = 59
+                }
+            }
+        }
+    }
+
+    val todayClasses = schedule.filter { it.dayOfWeek == 2 }
+    val nextClass = todayClasses.firstOrNull()
     val nextExam = exams.firstOrNull { !it.isPast }
 
     Box(
@@ -272,12 +280,11 @@ fun HomeScreen(
 
                     // 3. Next Class & Primary Action CTA
                     if (nextClass != null) {
-                        val (nextLesson, nextLessonStartSecond) = nextClass
                         item {
                             AppCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onScheduleItemClick(nextLesson) },
+                                    .clickable { onScheduleItemClick(nextClass) },
                                 testTag = "home_next_class_card"
                             ) {
                                 Column(modifier = Modifier.padding(AppSpacing.cardInternal)) {
@@ -306,7 +313,13 @@ fun HomeScreen(
                                                     modifier = Modifier.size(AppIconSize.micro)
                                                 )
                                                 Spacer(modifier = Modifier.width(AppSpacing.xxs))
-                                                CountdownText(startSecondOfDay = nextLessonStartSecond)
+                                                Text(
+                                                    text = String.format("%02d:%02d galdy", minutesLeft, secondsLeft),
+                                                    style = AppTypography.Caption.copy(
+                                                        color = StatusWarning,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                )
                                             }
                                         }
                                     }
@@ -314,7 +327,7 @@ fun HomeScreen(
                                     Spacer(modifier = Modifier.height(AppSpacing.s))
 
                                     Text(
-                                        text = nextLesson.subjectName,
+                                        text = nextClass.subjectName,
                                         style = AppTypography.Title.copy(fontSize = 18.sp),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -333,7 +346,7 @@ fun HomeScreen(
                                         )
                                         Spacer(modifier = Modifier.width(AppSpacing.xxs))
                                         Text(
-                                            text = "${nextLesson.classroom} • ${nextLesson.teacherName} • ${nextLesson.startTime}",
+                                            text = "${nextClass.classroom} • ${nextClass.teacherName} • ${nextClass.startTime}",
                                             style = AppTypography.BodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -560,41 +573,5 @@ fun QuickActionTile(
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
-    }
-}
-
-@Composable
-private fun rememberClock(periodMillis: Long): State<Calendar> =
-    produceState(initialValue = Calendar.getInstance()) {
-        while (true) {
-            delay(periodMillis)
-            value = Calendar.getInstance()
-        }
-    }
-
-private fun Calendar.secondOfDay(): Int =
-    get(Calendar.HOUR_OF_DAY) * 3600 + get(Calendar.MINUTE) * 60 + get(Calendar.SECOND)
-
-/** Ticks every second on its own, so only this text recomposes rather than the whole Home screen. */
-@Composable
-private fun CountdownText(startSecondOfDay: Int) {
-    val now by rememberClock(periodMillis = 1_000)
-    Text(
-        text = formatCountdown((startSecondOfDay - now.secondOfDay()).coerceAtLeast(0)) + " galdy",
-        style = AppTypography.Caption.copy(
-            color = StatusWarning,
-            fontWeight = FontWeight.Bold
-        )
-    )
-}
-
-private fun formatCountdown(totalSeconds: Int): String {
-    val hours = totalSeconds / 3600
-    val minutes = totalSeconds % 3600 / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format(Locale.ROOT, "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.ROOT, "%02d:%02d", minutes, seconds)
     }
 }

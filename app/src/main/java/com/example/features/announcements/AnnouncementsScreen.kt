@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -42,10 +41,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,8 +69,7 @@ fun AnnouncementsScreen(
     onNotificationClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Stored as an index (not the localized label) so the filter survives a language change.
-    var selectedCategoryIndex by rememberSaveable { mutableIntStateOf(0) }
+    var selectedCategory by remember { mutableStateOf(strings.filterAll) }
     var selectedAnnouncement by remember { mutableStateOf<AnnouncementItem?>(null) }
 
     val categories = listOf(
@@ -87,13 +83,14 @@ fun AnnouncementsScreen(
     )
 
     val filteredList = announcements.filter { item ->
-        when (selectedCategoryIndex) {
-            1 -> item.isImportant
-            2 -> item.category == "Uniwersitet"
-            3 -> item.category == "Fakultet"
-            4 -> item.category == "Okuw"
-            5 -> item.category == "Ekzamen"
-            6 -> item.category == "Çäreler"
+        when (selectedCategory) {
+            strings.filterAll -> true
+            strings.filterImportant -> item.isImportant
+            strings.filterUniversity -> item.category == "Uniwersitet"
+            strings.filterFaculty -> item.category == "Fakultet"
+            strings.filterStudy -> item.category == "Okuw"
+            strings.filterExam -> item.category == "Ekzamen"
+            strings.filterEvents -> item.category == "Çäreler"
             else -> true
         }
     }
@@ -120,11 +117,11 @@ fun AnnouncementsScreen(
                 .padding(horizontal = 16.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            itemsIndexed(categories) { index, cat ->
-                val isSelected = index == selectedCategoryIndex
+            items(categories) { cat ->
+                val isSelected = cat == selectedCategory
                 FilterChip(
                     selected = isSelected,
-                    onClick = { selectedCategoryIndex = index },
+                    onClick = { selectedCategory = cat },
                     label = {
                         Text(
                             text = cat,

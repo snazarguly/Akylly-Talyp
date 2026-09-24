@@ -8,6 +8,7 @@
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+app/src/main/assets/models/gemma3.task
 .DS_Store
 /build
 /captures

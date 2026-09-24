@@ -17,7 +17,7 @@ interface LocalInferenceEngine {
     /**
      * Initializes the engine by loading the model directly from APK assets.
      * @param context Android context to access assets.
-     * @param assetPath Path within the assets folder (e.g., "models/Qwen3-4B-Instruct-Q4_K_M.gguf").
+    * @param assetPath Path within the assets folder, such as "models/gemma3.task".
      */
     suspend fun initializeFromAssets(context: Context, assetPath: String, config: InferenceConfig): Result<Unit>
 

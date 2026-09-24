@@ -165,7 +165,7 @@ fun OfflineAiScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "100% Offline",
+                                    text = "100% On-Device",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = StatusSuccess
@@ -180,6 +180,7 @@ fun OfflineAiScreen(
                     )
                 }
 
+                // Switch user dropdown menu
                 Box {
                     IconButton(onClick = { showUserMenu = true }) {
                         Icon(
@@ -227,7 +228,7 @@ fun OfflineAiScreen(
             }
         }
 
-        // Subheader
+        // Subheader - Offline Mode Status
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
             modifier = Modifier.fillMaxWidth()
@@ -244,7 +245,7 @@ fun OfflineAiScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Qwen3 4B • On-Device Model",
+                    text = "Lokal maglumatlar binýady arkaly işleýär",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -267,7 +268,8 @@ fun OfflineAiScreen(
                 )
             }
 
-            if (inferenceState != ModelInferenceState.READY) {
+            if (inferenceState == ModelInferenceState.RETRIEVING_CONTEXT ||
+                inferenceState == ModelInferenceState.GENERATING) {
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -306,7 +308,6 @@ fun OfflineAiScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = when (inferenceState) {
-                                        ModelInferenceState.LOADING_WEIGHTS -> "Model ýüklenýär..."
                                         ModelInferenceState.RETRIEVING_CONTEXT -> "Maglumatlar gözlenýär..."
                                         else -> "Jogap taýýarlanýar..."
                                     },
@@ -328,11 +329,12 @@ fun OfflineAiScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val sampleChips = listOf(
-                "GPA-m näçe?",
+                "Öňki semestrde haýsy derslerimden geçip bilmedim?",
                 "Gatnaşyk düzgüni nähili?",
-                "Şu gün näme sapak bar?",
+                "20.09 haýsy sapaklar bar?",
                 "CyberGuard bäsleşigi barada aýt",
-                "What is IOGU?"
+                "Uniwersitetiň daşynda awtoduralga barmy?",
+                "Merjen talybyň bahalaryny görkez"
             )
             items(sampleChips) { chip ->
                 Surface(

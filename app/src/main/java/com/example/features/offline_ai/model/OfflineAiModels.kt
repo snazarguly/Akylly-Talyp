@@ -2,6 +2,13 @@ package com.example.features.offline_ai.model
 
 /**
  * Highly detailed, structured academic data models for offline reasoning.
+ * Preserves strict relational hierarchies:
+ * Student -> Academic Year -> Semester -> Subject -> Teacher + Grade Components + Attendance + Exams
+ *
+ * All semester GPAs, cumulative GPAs, and attendance totals are mathematically calculated
+ * from the underlying subject-level records.
+ *
+ * NOTE: Marked as DEMO DATA — NOT REAL UNIVERSITY DATA.
  */
 
 data class OfflineGradeComponents(
@@ -50,22 +57,34 @@ data class OfflineSubjectRecord(
     val attendance: OfflineSubjectAttendance,
     val exams: List<OfflineSubjectExamRecord> = emptyList(),
     val description: String = ""
-)
+) {
+    // Convenience backward-compatibility properties
+    val currentGrade: Double get() = grades.finalScore
+    val midtermScore: Double get() = grades.midtermScore
+    val finalScore: Double get() = grades.finalExamScore
+    val examScore: Double get() = grades.finalExamScore
+    val isPassed: Boolean get() = grades.isPassed
+    val attendedClasses: Int get() = attendance.attendedClasses
+    val absences: Int get() = attendance.absences
+    val lateArrivals: Int get() = attendance.lateArrivals
+    val totalHours: Int get() = attendance.totalClasses
+    val semester: Int get() = semesterNumber
+}
 
 data class OfflineSemesterRecord(
     val semesterId: String,
     val semesterNumber: Int,
     val academicYear: String,
     val yearNumber: Int,
-    val season: String,
+    val season: String, // "Güýz" (Fall) or "Bahar" (Spring)
     val startDate: String,
     val endDate: String,
-    val status: String,
+    val status: String, // "Completed", "In Progress", "Upcoming"
     val totalSubjects: Int,
     val totalCredits: Int,
     val completedCredits: Int,
-    val semesterGpa: Double,
-    val semesterAverage: Double,
+    val semesterGpa: Double, // Credit-weighted calculation
+    val semesterAverage: Double, // Simple average
     val totalClassesHeld: Int,
     val totalAttended: Int,
     val totalAbsences: Int,
@@ -74,7 +93,9 @@ data class OfflineSemesterRecord(
     val lateArrivals: Int,
     val subjects: List<OfflineSubjectRecord>,
     val weeklySchedule: List<OfflineScheduleRecord> = emptyList()
-)
+) {
+    val semesterAbsences: Int get() = totalAbsences
+}
 
 data class OfflineAcademicYearRecord(
     val yearNumber: Int,
@@ -86,7 +107,7 @@ data class OfflineTeacherRecord(
     val id: String,
     val fullName: String,
     val department: String,
-    val academicTitle: String,
+    val academicTitle: String, // Docent, Professor, Uly Mugallym
     val subjectsTaught: List<String>,
     val semestersTaught: List<Int>,
     val isCurrentTeacher: Boolean
@@ -95,7 +116,7 @@ data class OfflineTeacherRecord(
 data class OfflineScheduleRecord(
     val id: String,
     val semesterNumber: Int = 0,
-    val dayOfWeek: Int,
+    val dayOfWeek: Int, // 1=Duşenbe, 2=Sişenbe, 3=Çarşenbe, 4=Penşenbe, 5=Anna, 6=Şenbe
     val dayName: String,
     val startTime: String,
     val endTime: String,
@@ -103,7 +124,7 @@ data class OfflineScheduleRecord(
     val subjectCode: String = "",
     val classroom: String,
     val teacherName: String,
-    val lessonType: String
+    val lessonType: String // Leksiýa, Tejribe, Laboratoriýa, Amaly
 )
 
 data class OfflineExamRecord(
@@ -114,7 +135,7 @@ data class OfflineExamRecord(
     val displayDate: String,
     val time: String,
     val classroom: String,
-    val type: String,
+    val type: String, // Final, Midterm, Synag
     val daysLeft: Int,
     val teacherName: String,
     val isCompleted: Boolean = false,
@@ -157,6 +178,9 @@ enum class ModelInferenceState {
     READY
 }
 
+/**
+ * Root student data container containing the complete multi-year hierarchical academic tree.
+ */
 data class OfflineStudentData(
     val userId: String,
     val fullName: String,
@@ -190,4 +214,11 @@ data class OfflineStudentData(
     val exams: List<OfflineExamRecord>,
     val announcements: List<OfflineAnnouncementRecord>,
     val isDemoData: Boolean = true
-)
+) {
+    val currentSemesterSubjects: List<OfflineSubjectRecord>
+        get() = allSemesters.find { it.semesterNumber == currentSemester }?.subjects
+            ?: allSemesters.lastOrNull()?.subjects ?: emptyList()
+
+    val pastSemesters: List<OfflineSemesterRecord>
+        get() = allSemesters.filter { it.status == "Completed" }
+}

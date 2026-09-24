@@ -52,7 +52,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,7 +70,6 @@ import com.example.core.model.QuizSet
 import com.example.core.model.ScheduleItem
 import com.example.core.model.StudentProfile
 import com.example.core.model.SubjectItem
-import com.example.core.util.CampusCalendar
 import com.example.ui.components.AppCard
 import com.example.ui.components.AppPrimaryButton
 import com.example.ui.components.AppSecondaryButton
@@ -109,26 +107,22 @@ fun StudyHubScreen(
     examsList: List<ExamItem>,
     student: StudentProfile,
     unreadCount: Int,
-    selectedSubTab: Int,
-    onSubTabChange: (Int) -> Unit,
+    initialSubTab: Int = 0,
     onSearchClick: () -> Unit,
     onNotificationClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 0 = Raspisaniýa, 1 = Ekzamen wagty, 2 = Bahalar, 3 = Testler.
-    // Hoisted to the caller so "open exams" from Home/Search/Notifications always switches the tab.
-    val selectedTab = selectedSubTab.coerceIn(0, 3)
+    // 0 = Raspisaniýa, 1 = Ekzamen wagty, 2 = Bahalar, 3 = Testler
+    var selectedTab by remember(initialSubTab) { mutableIntStateOf(initialSubTab.coerceIn(0, 3)) }
 
-    // Schedule Day Filter: 1=Duş … 6=Şen; starts on today (Sunday falls back to Monday)
-    var selectedDayOfWeek by rememberSaveable {
-        mutableIntStateOf(CampusCalendar.todayDayOfWeek().let { if (it == 7) 1 else it })
-    }
+    // Schedule Day Filter: 1=Duş, 2=Siş, 3=Çar, 4=Pen, 5=Ann, 6=Şen
+    var selectedDayOfWeek by remember { mutableIntStateOf(2) }
 
     // Exam Filter: 0=Ählisi, 1=Ýakynlaşýan, 2=Geçen
-    var selectedExamFilter by rememberSaveable { mutableIntStateOf(0) }
+    var selectedExamFilter by remember { mutableIntStateOf(0) }
 
-    // Grades Semester Filter: defaults to the latest semester that has subjects
-    var selectedSemester by rememberSaveable { mutableIntStateOf(subjectsList.maxOfOrNull { it.semester } ?: 1) }
+    // Grades Semester Filter: 4 = Current (4th Year / 7th Semester)
+    var selectedSemester by remember { mutableIntStateOf(4) }
 
     Column(
         modifier = modifier
@@ -155,7 +149,7 @@ fun StudyHubScreen(
             AppSegmentedControl(
                 items = listOf("Raspisaniýa", "Ekzamen", "Bahalar", "Testler"),
                 selectedIndex = selectedTab,
-                onItemSelected = onSubTabChange,
+                onItemSelected = { selectedTab = it },
                 testTag = "study_hub_segmented_tabs"
             )
         }
@@ -201,14 +195,16 @@ private fun ScheduleSection(
     onDaySelected: (Int) -> Unit,
     strings: AppStrings
 ) {
-    val days = listOf("Duş", "Siş", "Çar", "Pen", "Ann", "Şen").mapIndexed { index, name ->
-        val dayNum = index + 1
-        Triple(dayNum, name, CampusCalendar.dayOfMonthInCurrentWeek(dayNum).toString())
-    }
+    val days = listOf(
+        Triple(1, "Duş", "23"),
+        Triple(2, "Siş", "24"),
+        Triple(3, "Çar", "25"),
+        Triple(4, "Pen", "26"),
+        Triple(5, "Ann", "27"),
+        Triple(6, "Şen", "28")
+    )
 
-    val dayLessons = scheduleList
-        .filter { it.dayOfWeek == selectedDayOfWeek }
-        .sortedBy { CampusCalendar.minutesOfDay(it.startTime) ?: Int.MAX_VALUE }
+    val dayLessons = scheduleList.filter { it.dayOfWeek == selectedDayOfWeek }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Horizontal Day Selector
@@ -590,9 +586,7 @@ private fun GradesSection(
     onSemesterSelected: (Int) -> Unit,
     strings: AppStrings
 ) {
-    // Only offer semesters that actually have subjects, and show just that semester's subjects.
-    val semesters = subjectsList.map { it.semester }.distinct().sorted()
-    val semesterSubjects = subjectsList.filter { it.semester == selectedSemester }
+    val semesters = listOf(1, 2, 3, 4)
 
     LazyColumn(
         modifier = Modifier
@@ -734,7 +728,7 @@ private fun GradesSection(
         }
 
         // Subject Grades List
-        items(semesterSubjects) { subject ->
+        items(subjectsList) { subject ->
             SubjectGradeCard(subject = subject)
         }
 

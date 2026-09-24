@@ -13,21 +13,18 @@ import com.example.core.model.ScheduleItem
 import com.example.core.model.SemesterProgress
 import com.example.core.model.StudentProfile
 import com.example.core.model.SubjectItem
-import com.example.core.util.CampusCalendar
 import com.example.ui.theme.ThemeMode
 import com.example.BuildConfig
 import com.example.core.ai.GeminiService
-import kotlinx.coroutines.CancellationException
+import com.example.core.ai.OnlineCampusAiEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -36,10 +33,6 @@ class DemoDataRepository(context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences("akylly_talyp_prefs", Context.MODE_PRIVATE)
-
-    // Kept in a separate file that is excluded from cloud backup (see res/xml/*backup*_rules.xml).
-    private val secretPrefs: SharedPreferences =
-        context.getSharedPreferences("akylly_talyp_secrets", Context.MODE_PRIVATE)
 
     // Auth & Session
     private val _isLoggedIn = MutableStateFlow(prefs.getBoolean("is_logged_in", true)) // default true for demo convenience
@@ -54,7 +47,7 @@ class DemoDataRepository(context: Context) {
     val rememberPassword: StateFlow<Boolean> = _rememberPassword.asStateFlow()
 
     private val _savedLogin =
-        MutableStateFlow(prefs.getString("saved_login", DEMO_LOGIN) ?: DEMO_LOGIN)
+        MutableStateFlow(prefs.getString("saved_login", "Suleyman_05") ?: "Suleyman_05")
     val savedLogin: StateFlow<String> = _savedLogin.asStateFlow()
 
     // Settings
@@ -133,30 +126,19 @@ class DemoDataRepository(context: Context) {
     private val _isAiThinking = MutableStateFlow(false)
     val isAiThinking: StateFlow<Boolean> = _isAiThinking.asStateFlow()
 
-    private val _customGeminiApiKey = MutableStateFlow(loadCustomApiKey())
+    private val _customGeminiApiKey = MutableStateFlow(prefs.getString("custom_gemini_api_key", "") ?: "")
     val customGeminiApiKey: StateFlow<String> = _customGeminiApiKey.asStateFlow()
-
-    private var aiJob: Job? = null
-
-    private fun loadCustomApiKey(): String {
-        // Migrate the key out of the backed-up preferences file used by older versions.
-        prefs.getString("custom_gemini_api_key", null)?.let { legacy ->
-            secretPrefs.edit().putString("custom_gemini_api_key", legacy).apply()
-            prefs.edit().remove("custom_gemini_api_key").apply()
-        }
-        return secretPrefs.getString("custom_gemini_api_key", "") ?: ""
-    }
 
     fun setCustomGeminiApiKey(key: String) {
         val trimmed = key.trim()
-        secretPrefs.edit().putString("custom_gemini_api_key", trimmed).apply()
+        prefs.edit().putString("custom_gemini_api_key", trimmed).apply()
         _customGeminiApiKey.value = trimmed
     }
 
     fun getEffectiveApiKey(): String {
         val custom = _customGeminiApiKey.value.trim()
         if (custom.isNotBlank()) return custom
-        val buildKey = BuildConfig.GEMINI_API_KEY.trim()
+        val buildKey = com.example.BuildConfig.GEMINI_API_KEY.trim()
         if (buildKey.isNotBlank() && buildKey != "MY_GEMINI_API_KEY") return buildKey
         return ""
     }
@@ -168,15 +150,16 @@ class DemoDataRepository(context: Context) {
     private val geminiService = GeminiService()
 
     fun login(loginInput: String, passwordInput: String): Boolean {
-        val login = loginInput.trim()
-        if (login != DEMO_LOGIN || passwordInput != DEMO_PASSWORD) return false
-
-        _isLoggedIn.value = true
-        prefs.edit().putBoolean("is_logged_in", true).apply()
-        val rememberedLogin = if (_rememberPassword.value) login else ""
-        prefs.edit().putString("saved_login", rememberedLogin).apply()
-        _savedLogin.value = rememberedLogin
-        return true
+        if (loginInput == "Suleyman_05" && passwordInput == "03122005.sns") {
+            _isLoggedIn.value = true
+            prefs.edit().putBoolean("is_logged_in", true).apply()
+            if (_rememberPassword.value) {
+                prefs.edit().putString("saved_login", loginInput).apply()
+                _savedLogin.value = loginInput
+            }
+            return true
+        }
+        return false
     }
 
     fun logout() {
@@ -253,29 +236,33 @@ class DemoDataRepository(context: Context) {
         _chatMessages.value = _chatMessages.value + userMsg
         _isAiThinking.value = true
 
-        aiJob?.cancel()
-        aiJob = repositoryScope.launch {
+        repositoryScope.launch {
             val effectiveKey = getEffectiveApiKey()
             var generatedReply: String? = null
 
-            if (_isOffline.value) {
-                generatedReply = offlineUnavailableMessage()
-            } else if (effectiveKey.isNotBlank()) {
+            if (effectiveKey.isNotBlank()) {
                 try {
                     val systemPrompt = buildSystemContext(_appLanguage.value)
-                    generatedReply = geminiService.generateResponse(
+                    val geminiReply = geminiService.generateResponse(
                         userPrompt = userText,
-                        apiKey = effectiveKey,
                         conversationHistory = _chatMessages.value,
-                        systemPrompt = systemPrompt
+                        systemPrompt = systemPrompt,
+                        apiKey = effectiveKey
                     )
-                } catch (e: CancellationException) {
-                    throw e
+                    if (geminiReply.isNotBlank()) {
+                        generatedReply = geminiReply
+                    }
                 } catch (e: Exception) {
-                    val httpCode = (e as? HttpException)?.code()
+                    val errorMsg = e.message ?: ""
                     generatedReply = when {
-                        e is IOException -> offlineUnavailableMessage()
-                        httpCode == 400 || httpCode == 401 || httpCode == 403 -> {
+                        errorMsg.contains("Unable to resolve host") || errorMsg.contains("timeout") || errorMsg.contains("timed out") -> {
+                            when (_appLanguage.value) {
+                                AppLanguage.TURKMEN -> "Online AI häzir elýeterli däl. Internet birikmesini barlaň ýa-da Offline AI režimini ulanyň."
+                                AppLanguage.RUSSIAN -> "Online AI сейчас недоступен. Проверьте подключение к интернету или используйте режим Offline AI."
+                                else -> "Online AI is currently unavailable. Please check your internet connection or use Offline AI mode."
+                            }
+                        }
+                        errorMsg.contains("401") || errorMsg.contains("API key") || errorMsg.contains("403") -> {
                             when (_appLanguage.value) {
                                 AppLanguage.TURKMEN -> "Online AI konfigurasiýasynda mesele bar. API açaryňyzy barlaň."
                                 AppLanguage.RUSSIAN -> "Проблема с конфигурацией Online AI. Проверьте ваш API ключ."
@@ -312,14 +299,7 @@ class DemoDataRepository(context: Context) {
         }
     }
 
-    private fun offlineUnavailableMessage(): String = when (_appLanguage.value) {
-        AppLanguage.TURKMEN -> "Online AI häzir elýeterli däl. Internet birikmesini barlaň ýa-da Offline AI režimini ulanyň."
-        AppLanguage.RUSSIAN -> "Online AI сейчас недоступен. Проверьте подключение к интернету или используйте режим Offline AI."
-        AppLanguage.ENGLISH -> "Online AI is currently unavailable. Please check your internet connection or use Offline AI mode."
-    }
-
     fun clearAiChat() {
-        aiJob?.cancel()
         _chatMessages.value = emptyList()
         _isAiThinking.value = false
     }
@@ -374,7 +354,7 @@ class DemoDataRepository(context: Context) {
 
     private fun createInitialSchedule(): List<ScheduleItem> {
         return listOf(
-            // Tuesday
+            // Tuesday (Today: Sep 15, 2026 is Tuesday)
             ScheduleItem(
                 id = "sch_1",
                 dayOfWeek = 2,
@@ -408,8 +388,8 @@ class DemoDataRepository(context: Context) {
             ScheduleItem(
                 id = "sch_4",
                 dayOfWeek = 2,
-                startTime = "14:30",
-                endTime = "15:50",
+                startTime = "14:00",
+                endTime = "15:20",
                 subjectName = "Maglumat ulgamlary we tehnologiýalary",
                 classroom = "302-nji otag",
                 teacherName = "O. Aşyrow",
@@ -643,12 +623,6 @@ class DemoDataRepository(context: Context) {
         )
     }
 
-    /** Derives [ExamItem.daysLeft] and [ExamItem.isPast] from the exam date instead of hardcoding them. */
-    private fun ExamItem.withCountdown(): ExamItem {
-        val days = CampusCalendar.daysUntil(dateIso) ?: return this
-        return copy(daysLeft = days.coerceAtLeast(0), isPast = days < 0)
-    }
-
     private fun createInitialExams(): List<ExamItem> {
         return listOf(
             ExamItem(
@@ -711,7 +685,7 @@ class DemoDataRepository(context: Context) {
                 teacherName = "E. Amanow",
                 isPast = true
             )
-        ).map { it.withCountdown() }
+        )
     }
 
     private fun createInitialAnnouncements(): List<AnnouncementItem> {
@@ -781,7 +755,7 @@ class DemoDataRepository(context: Context) {
                 id = "n_3",
                 title = "Uniwersitetden täze bildiriş geldi",
                 body = "2026/2027-nji okuw ýylynyň güýzki ekzamen tertibi tassyklandy.",
-                timestamp = "Düýn",
+                timestamp = "Dünä",
                 targetScreen = "announcements",
                 isRead = true
             ),
@@ -794,11 +768,5 @@ class DemoDataRepository(context: Context) {
                 isRead = true
             )
         )
-    }
-
-    companion object {
-        // Demo account; there is no real authentication backend yet.
-        const val DEMO_LOGIN = "Suleyman_05"
-        const val DEMO_PASSWORD = "03122005.sns"
     }
 }
