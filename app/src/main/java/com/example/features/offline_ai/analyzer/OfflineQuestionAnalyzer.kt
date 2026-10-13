@@ -26,7 +26,7 @@ object OfflineQuestionAnalyzer {
         val q = query.lowercase(Locale.ROOT).trim()
         
         // Normalize: remove punctuation but keep Turkmen and Russian alphabets
-        val normalized = q.replace(Regex("[^a-zа-ý0-9\\s]"), " ")
+        val normalized = q.replace(Regex("[^a-z0-9\\säňöşüzýç\\u0400-\\u04FF]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
             

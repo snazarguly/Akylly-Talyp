@@ -1,0 +1,4 @@
+- `[x]` Restore `qwen3.task` in `app/src/main/assets/models/`
+- `[x]` Update `LlamaCppEngine.kt` for optimized chunked asset-to-file copying
+- `[x]` Rebuild app and verify build (`app:assembleDebug`)
+- `[x]` Create walkthrough artifact
