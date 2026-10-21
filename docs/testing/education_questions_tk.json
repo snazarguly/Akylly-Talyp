@@ -1,0 +1,478 @@
+{
+  "title": "Akylly Talyp — okuw boýunça offline AI synag soraglary",
+  "language": "tk",
+  "version": 1,
+  "purpose": "Offline AI-niň okuw bilen bagly soraglara düşünmegini, dogry maglumatdan jogap bermegini we maglumat ýok wagty faktlary oýlap tapmazlygyny barlamak.",
+  "totalQuestions": 100,
+  "categories": [
+    {
+      "id": 1,
+      "category": "Uniwersitet we okuw durmuşy",
+      "questions": [
+        {
+          "id": 1,
+          "question": "Uniwersitet näme?"
+        },
+        {
+          "id": 2,
+          "question": "Uniwersitetde nähili fakultetler bar?"
+        },
+        {
+          "id": 3,
+          "question": "Haýsy hünärler boýunça okap bolýar?"
+        },
+        {
+          "id": 4,
+          "question": "Hünär bilen fakultetiň tapawudy näme?"
+        },
+        {
+          "id": 5,
+          "question": "Bakalawr näme?"
+        },
+        {
+          "id": 6,
+          "question": "Magistratura näme?"
+        },
+        {
+          "id": 7,
+          "question": "Uniwersitetde okuw näçe ýyl dowam edýär?"
+        },
+        {
+          "id": 8,
+          "question": "Birinji kurs diýmek näme?"
+        },
+        {
+          "id": 9,
+          "question": "Talyp näme?"
+        },
+        {
+          "id": 10,
+          "question": "Uniwersitetiň düzgünlerini nireden öwrenip bilerin?"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "category": "Sapaklar we dersler",
+      "questions": [
+        {
+          "id": 11,
+          "question": "Şu gün nähili sapaklarym bar?"
+        },
+        {
+          "id": 12,
+          "question": "Ertir haýsy dersler okadylýar?"
+        },
+        {
+          "id": 13,
+          "question": "Sapak sagat näçede başlanýar?"
+        },
+        {
+          "id": 14,
+          "question": "Sapak sagat näçede tamamlanýar?"
+        },
+        {
+          "id": 15,
+          "question": "Bir sapak näçe minut dowam edýär?"
+        },
+        {
+          "id": 16,
+          "question": "Bir günde näçe sapak bolup biler?"
+        },
+        {
+          "id": 17,
+          "question": "Şu gün haýsy mugallym sapak berýär?"
+        },
+        {
+          "id": 18,
+          "question": "Sapagyň otagyny nireden bilip bilerin?"
+        },
+        {
+          "id": 19,
+          "question": "Sapak tertibimi nädip görüp bilerin?"
+        },
+        {
+          "id": 20,
+          "question": "Ertir sapak bolarmy?"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "category": "Dersleri öwrenmek we düşündiriş",
+      "questions": [
+        {
+          "id": 21,
+          "question": "Matematika näme?"
+        },
+        {
+          "id": 22,
+          "question": "Fizikanyň esasy kanunlary haýsylar?"
+        },
+        {
+          "id": 23,
+          "question": "Informatika näme?"
+        },
+        {
+          "id": 24,
+          "question": "Programmirleme näme?"
+        },
+        {
+          "id": 25,
+          "question": "Algoritm näme?"
+        },
+        {
+          "id": 26,
+          "question": "Maglumatlar bazasy näme?"
+        },
+        {
+          "id": 27,
+          "question": "Kompýuter torlary näme?"
+        },
+        {
+          "id": 28,
+          "question": "Elektrik togy näme?"
+        },
+        {
+          "id": 29,
+          "question": "Termodinamika näme?"
+        },
+        {
+          "id": 30,
+          "question": "Bir temany ýönekeý dilde düşündirip bilersiňmi?"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "category": "Öý işleri we tabşyryklar",
+      "questions": [
+        {
+          "id": 31,
+          "question": "Şu gün haýsy öý işlerini etmeli?"
+        },
+        {
+          "id": 32,
+          "question": "Öý işimi nädip meýilleşdirip bilerin?"
+        },
+        {
+          "id": 33,
+          "question": "Referat nädip ýazylýar?"
+        },
+        {
+          "id": 34,
+          "question": "Kurs işi näme?"
+        },
+        {
+          "id": 35,
+          "question": "Kurs işini nädip başlamaly?"
+        },
+        {
+          "id": 36,
+          "question": "Prezentasiýa nädip taýýarlanylýar?"
+        },
+        {
+          "id": 37,
+          "question": "Laboratoriýa işi näme?"
+        },
+        {
+          "id": 38,
+          "question": "Amaly iş bilen nazary işiň tapawudy näme?"
+        },
+        {
+          "id": 39,
+          "question": "Tabşyrygy tabşyrmagyň soňky möhleti näme?"
+        },
+        {
+          "id": 40,
+          "question": "Öý işimi barlamaga kömek edip bilersiňmi?"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "category": "Synaglar we taýýarlyk",
+      "questions": [
+        {
+          "id": 41,
+          "question": "Synaga nädip taýýarlanmaly?"
+        },
+        {
+          "id": 42,
+          "question": "Synaga taýýarlanmak üçin meýilnama düz."
+        },
+        {
+          "id": 43,
+          "question": "Synagda gowy baha almak üçin näme etmeli?"
+        },
+        {
+          "id": 44,
+          "question": "Aralyk synag näme?"
+        },
+        {
+          "id": 45,
+          "question": "Jemleýji synag näme?"
+        },
+        {
+          "id": 46,
+          "question": "Dersi gaýtadan tabşyrmak näme?"
+        },
+        {
+          "id": 47,
+          "question": "Synagdan geçmesem näme bolýar?"
+        },
+        {
+          "id": 48,
+          "question": "Synag soraglaryny nädip ýat tutmaly?"
+        },
+        {
+          "id": 49,
+          "question": "Synagdan öň näçe wagt okamaly?"
+        },
+        {
+          "id": 50,
+          "question": "Öwrenen zatlarymy nädip ýatda saklap bilerin?"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "category": "Bahalar we okuw netijeleri",
+      "questions": [
+        {
+          "id": 51,
+          "question": "GPA näme?"
+        },
+        {
+          "id": 52,
+          "question": "GPA nähili hasaplanýar?"
+        },
+        {
+          "id": 53,
+          "question": "Kredit näme?"
+        },
+        {
+          "id": 54,
+          "question": "Bir ders näçe kredit bolup biler?"
+        },
+        {
+          "id": 55,
+          "question": "Semestr näme?"
+        },
+        {
+          "id": 56,
+          "question": "Semestr bahalarymy nireden görüp bilerin?"
+        },
+        {
+          "id": 57,
+          "question": "Baham näme üçin pes bolup biler?"
+        },
+        {
+          "id": 58,
+          "question": "Bahamy nädip ýokarlandyryp bilerin?"
+        },
+        {
+          "id": 59,
+          "question": "Okuw netijelerimi nädip gowulandyryp bilerin?"
+        },
+        {
+          "id": 60,
+          "question": "Ýokary GPA almak üçin nähili meýilnama gerek?"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "category": "Gatnaşyk we okuw düzgünleri",
+      "questions": [
+        {
+          "id": 61,
+          "question": "Sapaga gatnaşmak näme üçin möhüm?"
+        },
+        {
+          "id": 62,
+          "question": "Sapaga gelmesem näme bolýar?"
+        },
+        {
+          "id": 63,
+          "question": "Gatnaşyk göterimim näçe?"
+        },
+        {
+          "id": 64,
+          "question": "Gatnaşygy nireden barlap bilerin?"
+        },
+        {
+          "id": 65,
+          "question": "Köp sapak goýbersem näme bolýar?"
+        },
+        {
+          "id": 66,
+          "question": "Mugallyma tabşyryk barada nädip ýazmaly?"
+        },
+        {
+          "id": 67,
+          "question": "Sapaga gijä galan ýagdaýymda näme etmeli?"
+        },
+        {
+          "id": 68,
+          "question": "Akademiki borç näme?"
+        },
+        {
+          "id": 69,
+          "question": "Akademiki düzgün bozulmagy näme?"
+        },
+        {
+          "id": 70,
+          "question": "Okuw düzgünlerini nireden tapyp bilerin?"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "category": "Talyp haky, stipendiýa we mümkinçilikler",
+      "questions": [
+        {
+          "id": 71,
+          "question": "Stipendiýa näme?"
+        },
+        {
+          "id": 72,
+          "question": "Talyp hakyny kimler alyp bilýär?"
+        },
+        {
+          "id": 73,
+          "question": "Talyp haky haçan berilýär?"
+        },
+        {
+          "id": 74,
+          "question": "Stipendiýa almak üçin nähili şertler bar?"
+        },
+        {
+          "id": 75,
+          "question": "Ýokary baha alsam, stipendiýa alyp bilerinmi?"
+        },
+        {
+          "id": 76,
+          "question": "Okuw üçin nähili ýeňillikler bar?"
+        },
+        {
+          "id": 77,
+          "question": "Uniwersitetde tejribe geçmek mümkinçiligi barmy?"
+        },
+        {
+          "id": 78,
+          "question": "Tejribe maksatnamasyna nädip gatnaşyp bilerin?"
+        },
+        {
+          "id": 79,
+          "question": "Okuw döwründe işlemek mümkinmi?"
+        },
+        {
+          "id": 80,
+          "question": "Okuw gutarandan soň nähili iş mümkinçilikleri bar?"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "category": "Okuw meýilnamasy we şahsy ösüş",
+      "questions": [
+        {
+          "id": 81,
+          "question": "Maňa bir günlük okuw meýilnamasyny düz."
+        },
+        {
+          "id": 82,
+          "question": "Bir hepdelik okuw meýilnamasyny düz."
+        },
+        {
+          "id": 83,
+          "question": "Okuw bilen dynç alşy nädip deňagramlaşdyrmaly?"
+        },
+        {
+          "id": 84,
+          "question": "Wagt dolandyryşy näme?"
+        },
+        {
+          "id": 85,
+          "question": "Ünsümi sapaga nädip jemläp bilerin?"
+        },
+        {
+          "id": 86,
+          "question": "Köp maglumat öwrenmegiň netijeli usullary haýsylar?"
+        },
+        {
+          "id": 87,
+          "question": "Iňlis dilini öwrenmek üçin meýilnama düz."
+        },
+        {
+          "id": 88,
+          "question": "Programmirlemegi noldan nädip öwrenmeli?"
+        },
+        {
+          "id": 89,
+          "question": "Haýsy dersden başlamagym has gowy?"
+        },
+        {
+          "id": 90,
+          "question": "Okuwda yza galmazlyk üçin näme etmeli?"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "category": "Akylly Talyp we şahsy okuw maglumatlary",
+      "questions": [
+        {
+          "id": 91,
+          "question": "Meniň okuw tertibimi görkezip bilersiňmi?"
+        },
+        {
+          "id": 92,
+          "question": "Men haýsy kursda okaýaryn?"
+        },
+        {
+          "id": 93,
+          "question": "Meniň hünärim näme?"
+        },
+        {
+          "id": 94,
+          "question": "Häzirki semestrim haýsy?"
+        },
+        {
+          "id": 95,
+          "question": "Meniň bahalarymy görkezip bilersiňmi?"
+        },
+        {
+          "id": 96,
+          "question": "Şu semestrde näçe kredit topladym?"
+        },
+        {
+          "id": 97,
+          "question": "Haýsy derslerden bergim bar?"
+        },
+        {
+          "id": 98,
+          "question": "Soňky sapagym haýsy otagda?"
+        },
+        {
+          "id": 99,
+          "question": "Meniň gatnaşygym näçe göterim?"
+        },
+        {
+          "id": 100,
+          "question": "Men barada haýsy okuw maglumatlaryň bar?"
+        }
+      ]
+    }
+  ],
+  "evaluationRules": [
+    "Umumy düşünje soraglaryna dogry we düşnükli düşündiriş bermeli.",
+    "Şahsy okuw maglumatlary (tertip, baha, kurs, hünär, kredit, gatnaşyk, otag) diňe häzirki talyp maglumatlaryndan alynmaly.",
+    "Maglumat ýok bolsa, ony anyk aýtmaly; sanlary, mugallymlary, otaglary ýa-da seneleri oýlap tapmaly däl.",
+    "Talyp maglumatlary diňe degişli ulanyjynyň öz ýazgysyndan alynmaly.",
+    "Jogaplar offline režimde internet/API talap etmeli däl.",
+    "Her synagda sorag, alnan jogap, garaşylýan netije, geçdi/geçmedi we bellik aýratyn ýazylmaly."
+  ],
+  "note": "Bu faýl synag maglumatlarydyr. Soraglaryň bolmagy olaryň hemmesine häzirki wagtda programma jogap berip bilýär diýmek däldir."
+}
